@@ -3,7 +3,6 @@ import requests
 from django.http import HttpResponse
 from django_seo_js import settings
 
-
 IGNORED_HEADERS = frozenset((
     'connection', 'keep-alive', 'proxy-authenticate',
     'proxy-authorization', 'te', 'trailers', 'transfer-encoding',
@@ -12,7 +11,6 @@ IGNORED_HEADERS = frozenset((
 
 
 class SelectedBackend(object):
-
     def __init__(self, *args, **kwargs):
         module_path = settings.BACKEND
         backend_module = importlib.import_module(".".join(module_path.split(".")[:-1]))
@@ -55,17 +53,21 @@ class SEOBackendBase(object):
 
 
 class RequestsBasedBackend(object):
-
     def __init__(self, *args, **kwargs):
         super(RequestsBasedBackend, self).__init__(*args, **kwargs)
         self.session = requests.Session()
 
     def build_django_response_from_requests_response(self, response):
-        r = HttpResponse(response.content)
+        try:
+            content = response.content.replace('<meta name="fragment" content="!">', '')
+        except:
+            content = response.content
+
+        r = HttpResponse(content)
         for k, v in response.headers.items():
             if k not in IGNORED_HEADERS:
                 r[k] = v
-        r['content-length'] = len(response.content)
+        r['content-length'] = len(content)
         r.status_code = response.status_code
         return r
 
